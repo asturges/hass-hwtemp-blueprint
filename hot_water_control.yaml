@@ -26,13 +26,13 @@ blueprint:
         entity:
           domain: sensor
     home_state:
-      name: "Home" State Value
+      name: '"Home" State Value'
       description: The exact state value that represents "Home" mode.
       default: "Home"
       selector:
         text:
     away_state:
-      name: "Away" State Value
+      name: '"Away" State Value'
       description: The exact state value that represents "Away" mode.
       default: "Away"
       selector:
