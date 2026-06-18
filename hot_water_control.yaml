@@ -1,0 +1,117 @@
+blueprint:
+  name: Hot Water Control (Temperature + Home/Away Mode)
+  description: >
+    Turns hot water on when temperature drops below a minimum threshold, off
+    when it rises above a maximum threshold, and also reacts directly to a
+    Home/Away presence sensor (e.g. Tado) changing state — turning the water
+    on when arriving home (if not already hot) and off when leaving.
+  domain: automation
+  input:
+    temp_sensor:
+      name: Temperature Sensor
+      description: Sensor reporting the current hot water temperature.
+      selector:
+        entity:
+          domain: sensor
+    hot_water_switch:
+      name: Hot Water Switch
+      description: The switch entity that controls the hot water immersion/boiler.
+      selector:
+        entity:
+          domain: switch
+    mode_sensor:
+      name: Home/Away Mode Sensor
+      description: Sensor reporting presence mode (e.g. from Tado).
+      selector:
+        entity:
+          domain: sensor
+    home_state:
+      name: "Home" State Value
+      description: The exact state value that represents "Home" mode.
+      default: "Home"
+      selector:
+        text:
+    away_state:
+      name: "Away" State Value
+      description: The exact state value that represents "Away" mode.
+      default: "Away"
+      selector:
+        text:
+    hw_min_temp:
+      name: Minimum Temperature
+      description: >
+        Entity (e.g. input_number) holding the minimum temperature threshold.
+        Hot water turns ON when the temperature drops below this.
+      selector:
+        entity:
+          domain: input_number
+    hw_max_temp:
+      name: Maximum Temperature
+      description: >
+        Entity (e.g. input_number) holding the maximum temperature threshold.
+        Hot water turns OFF when the temperature rises above this.
+      selector:
+        entity:
+          domain: input_number
+
+trigger:
+  - platform: numeric_state
+    entity_id: !input temp_sensor
+    below: !input hw_min_temp
+    id: below_min
+  - platform: numeric_state
+    entity_id: !input temp_sensor
+    above: !input hw_max_temp
+    id: above_max
+  - platform: state
+    entity_id: !input mode_sensor
+    to: !input home_state
+    id: mode_home
+  - platform: state
+    entity_id: !input mode_sensor
+    to: !input away_state
+    id: mode_away
+
+condition: []
+
+action:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: below_min
+          - condition: state
+            entity_id: !input mode_sensor
+            state: !input home_state
+        sequence:
+          - service: switch.turn_on
+            target:
+              entity_id: !input hot_water_switch
+      - conditions:
+          - condition: trigger
+            id: above_max
+          - condition: state
+            entity_id: !input mode_sensor
+            state: !input home_state
+        sequence:
+          - service: switch.turn_off
+            target:
+              entity_id: !input hot_water_switch
+      - conditions:
+          - condition: trigger
+            id: mode_home
+          - condition: numeric_state
+            entity_id: !input temp_sensor
+            below: !input hw_max_temp
+        sequence:
+          - service: switch.turn_on
+            target:
+              entity_id: !input hot_water_switch
+      - conditions:
+          - condition: trigger
+            id: mode_away
+        sequence:
+          - service: switch.turn_off
+            target:
+              entity_id: !input hot_water_switch
+
+mode: single
